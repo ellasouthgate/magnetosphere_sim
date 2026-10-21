@@ -251,3 +251,164 @@ def plot_footpoint_latitude(r_mp, L_max=15):
     ax.legend(loc="center right", fontsize=9)
     fig.tight_layout()
     return fig
+
+
+# ===========================================================================
+# Stage 2: particle trajectories
+# ===========================================================================
+
+def _running_mean(y, window):
+    """Mean of y over a sliding window of `window` points (same length as y)."""
+    window = max(int(window), 1)
+    if window == 1 or window >= len(y):
+        return y.copy()
+    kernel = np.ones(window) / window
+    padded = np.pad(y, (window // 2, window - 1 - window // 2), mode="edge")
+    return np.convolve(padded, kernel, mode="valid")
+
+
+def plot_trajectory_3d(result, species, L_context, r_mp, title,
+                       field_strength_scale=1.0, n_context_lines=6):
+    """
+    3D trajectory, coloured by time, with Earth and a few field lines of the
+    launch L-shell for context.  An impact point (if any) is marked with a star.
+
+    What to look for:
+        gyration  - the small loops around the field line
+        bouncing  - the path running north/south between two mirror points
+        drift     - the bounce path slowly moving round Earth (colour change)
+    """
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+    fig = plt.figure(figsize=(9, 8))
+    ax = fig.add_subplot(projection="3d")
+
+    # Field lines of the launch L-shell at several longitudes.
+    for phi in np.linspace(0, 2 * np.pi, n_context_lines, endpoint=False):
+        segments, _ = field_line_for_L(L_context, phi, r_mp, field_strength_scale)
+        for seg in segments:
+            ax.plot(*(seg.T / R_E), color="#999999", lw=0.6, alpha=0.6)
+
+    # Earth
+    u, v = np.mgrid[0:2 * np.pi:40j, 0:np.pi:20j]
+    ax.plot_surface(np.cos(u) * np.sin(v), np.sin(u) * np.sin(v), np.cos(v),
+                    color=COLOUR_EARTH_DAY, edgecolor="none", alpha=0.9)
+
+    # Trajectory, coloured by time.
+    pts = result["r"] / R_E
+    segs = np.stack([pts[:-1], pts[1:]], axis=1)
+    lc = Line3DCollection(segs, cmap="plasma", lw=0.6)
+    lc.set_array(result["t"][:-1])
+    ax.add_collection(lc)
+    cbar = fig.colorbar(lc, ax=ax, shrink=0.6, pad=0.1)
+    cbar.set_label("time [s]")
+
+    ax.scatter(*pts[0], color="black", s=25, label="start")
+    if result["hit"] is not None:
+        ax.scatter(*(result["hit"]["position"] / R_E), color="red", marker="*",
+                   s=150, label=f"hits Earth at λ = {result['hit']['latitude_deg']:.1f}°")
+    ax.plot([], [], color="#999999", label=f"field lines, L = {L_context:g}")
+
+    lim = 1.1 * L_context
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_zlim(-lim, lim)
+    ax.set_box_aspect((1, 1, 1))
+    ax.set_xlabel("x [R_E] (Sun →)")
+    ax.set_ylabel("y [R_E]")
+    ax.set_zlabel("z [R_E]")
+    ax.set_title(title)
+    ax.legend(loc="upper left", fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def plot_trajectory_components(result, title):
+    """
+    The three motions separated out, against time:
+        distance |r|   - small fast wiggles are the gyration
+        latitude       - oscillates between the mirror points (bounce)
+        longitude      - steady trend is the drift around Earth
+    """
+    t = result["t"]
+    r = result["r"]
+    r_mag = np.linalg.norm(r, axis=1)
+    lat = np.degrees(np.arcsin(r[:, 2] / r_mag))
+    lon = np.degrees(np.unwrap(np.arctan2(r[:, 1], r[:, 0])))
+
+    fig, axes = plt.subplots(3, 1, figsize=(9, 7.5), sharex=True)
+    axes[0].plot(t, r_mag / R_E, lw=0.6, color=COLOUR_CLOSED)
+    axes[0].set_ylabel("|r| [R_E]")
+    axes[1].plot(t, lat, lw=0.8, color=COLOUR_CLOSED)
+    axes[1].set_ylabel("magnetic latitude [°]")
+    axes[2].plot(t, lon, lw=0.8, color=COLOUR_CLOSED)
+    axes[2].set_ylabel("longitude from noon [°]\n(+ = eastward)")
+    axes[2].set_xlabel("time [s]")
+    for ax in axes:
+        ax.grid(alpha=0.2)
+    axes[0].set_title(title)
+    fig.tight_layout()
+    return fig
+
+
+def plot_energy(result, species, title):
+    """
+    Kinetic energy K = ½·m·|v|² against time.  Top: K in eV.
+    Bottom: relative change (K − K₀)/K₀, which shows the rounding-level
+    noise (≈ 1e-15) because a Boris step only rotates v.
+    """
+    from constants import E_CHARGE
+    K = 0.5 * species.mass * np.sum(result["v"] ** 2, axis=1)
+    K_eV = K / E_CHARGE
+    rel = (K - K[0]) / K[0]
+
+    fig, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True)
+    axes[0].plot(result["t"], K_eV, color=COLOUR_CLOSED)
+    axes[0].set_ylabel("kinetic energy [eV]")
+    # Without this, matplotlib zooms in on the rounding noise and the
+    # constant line looks like it is changing.
+    axes[0].set_ylim(0, 1.2 * K_eV.max())
+    axes[1].plot(result["t"], rel, color=COLOUR_CLOSED, lw=0.6)
+    axes[1].set_ylabel("(K − K₀) / K₀")
+    axes[1].set_xlabel("time [s]")
+    for ax in axes:
+        ax.grid(alpha=0.2)
+    axes[0].set_title(title)
+    fig.tight_layout()
+    return fig
+
+
+def plot_magnetic_moment(result, species, gyroperiod_eq, title):
+    """
+    Magnetic moment μ = m·v⊥² / (2B), divided by its starting value.
+
+    The raw value wiggles once per gyration, because the particle samples a
+    slightly different B on each side of its gyration circle.  The thick
+    line is a running average over one equatorial gyroperiod, which should
+    stay close to 1.
+    """
+    B = result["B"]
+    B_mag = np.linalg.norm(B, axis=1)
+    b_hat = B / B_mag[:, None]
+    v = result["v"]
+    v_par = np.sum(v * b_hat, axis=1)
+    v_perp_sq = np.sum(v * v, axis=1) - v_par**2
+    mu = species.mass * v_perp_sq / (2 * B_mag)
+    mu_rel = mu / mu[0]
+
+    dt_saved = result["t"][1] - result["t"][0]
+    mu_avg = _running_mean(mu_rel, gyroperiod_eq / dt_saved)
+
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    ax.plot(result["t"], mu_rel, color=COLOUR_CLOSED, lw=0.4, alpha=0.5,
+            label="μ / μ₀ (instantaneous)")
+    ax.plot(result["t"], mu_avg, color=COLOUR_OPEN, lw=2,
+            label="averaged over one gyroperiod")
+    ax.axhline(1, color="black", lw=0.8, ls=":")
+    ax.set_xlabel("time [s]")
+    ax.set_ylabel("μ / μ₀")
+    ax.set_title(title)
+    ax.grid(alpha=0.2)
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    return fig
