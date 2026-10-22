@@ -200,12 +200,17 @@ def main():
 
     FIGURE_DIR.mkdir(exist_ok=True)
     figures = {}
+    animations = {}
 
     if args.stage in ("1", "all"):
         check_surface_field()
         check_traced_lines()
         r_mp = check_magnetopause()
         print_L_shell_table(r_mp)
+        field_fig = plotting.plot_field_direction_3d(
+            r_mp, field_strength_scale=FIELD_STRENGTH_SCALE)
+        figures["6_field_direction_3d.png"] = field_fig
+        animations["6_field_direction_3d.gif"] = plotting.animate_rotation(field_fig)
     else:
         r_mp = magnetopause_standoff(*QUIET_SOLAR_WIND, FIELD_STRENGTH_SCALE)
 
@@ -214,6 +219,10 @@ def main():
 
     for filename, fig in figures.items():
         fig.savefig(FIGURE_DIR / filename, dpi=150)
+        print(f"Saved figures/{filename}")
+
+    for filename, anim in animations.items():
+        anim.save(FIGURE_DIR / filename, writer="pillow", dpi=80)
         print(f"Saved figures/{filename}")
 
     if args.show:
