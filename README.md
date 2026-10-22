@@ -1,2 +1,0 @@
-# magnetosphere_sim
-
