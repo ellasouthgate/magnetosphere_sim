@@ -1,10 +1,3 @@
-"""
-Physical constants used throughout the project, all in SI units.
-
-Keep every constant here so the whole team uses the same values.
-Sources are given next to each value.
-"""
-
 import numpy as np
 
 # --- Fundamental constants -------------------------------------------------
