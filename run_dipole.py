@@ -1,21 +1,3 @@
-"""
-Run the examples.
-
-Stage 1 (the dipole magnetosphere): prints validation checks and the
-L-shell table, and saves figures 1–4 to the figures/ folder.
-
-Stage 2 (single particles): runs a 10 MeV proton, a proton inside the loss
-cone (which hits Earth), and a 1 keV electron.  Prints the launch values
-(speed, |B|, Larmor radius, gyroperiod) and checks, and saves figures 5–12.
-
-Usage:
-    py run_dipole.py                (both stages; the electron takes a few minutes)
-    py run_dipole.py --stage 1      (only the magnetosphere)
-    py run_dipole.py --stage 2      (only the particles)
-    py run_dipole.py --show         (also open the figures in windows,
-                                     useful for rotating the 3D plots)
-"""
-
 import argparse
 import sys
 from pathlib import Path
@@ -34,7 +16,6 @@ import plotting
 
 FIGURE_DIR = Path(__file__).parent / "figures"
 
-# Solar wind conditions: (density [cm⁻³], speed [km/s])
 QUIET_SOLAR_WIND = (5.0, 400.0)
 STORM_SOLAR_WIND = (20.0, 700.0)
 
@@ -106,19 +87,12 @@ def check_magnetopause():
 # Stage 2: single particles
 # ===========================================================================
 
-# Time step = DT_FRACTION × (gyroperiod at the mirror point).
 DT_FRACTION = 1 / 30
 
-# How long to follow the 1 keV electron, as a fraction of its bounce period.
-# One full bounce is about 4 million steps (several minutes in plain Python),
-# so by default we only go equator → northern mirror point → back to the
-# equator (0.55 rather than 0.5, so it gets back across the equator and the
-# bounce period can be measured).  Increase for a longer run.
 ELECTRON_BOUNCE_FRACTION = 0.55
 
 
 def print_launch_info(info):
-    """Launch values, for comparing with hand calculations."""
     trapped = info["pitch_angle_deg"] > info["loss_cone_deg"]
     print(f"  {info['species']}, K = {info['energy_eV']:.4g} eV, launched at "
           f"L = {info['L']:g} on the equator, pitch angle {info['pitch_angle_deg']:g}°")
@@ -136,7 +110,6 @@ def print_launch_info(info):
 
 
 def print_run_checks(result, info, species):
-    """Energy conservation, bounce and drift periods, or the impact point."""
     print(f"    dt = {result['dt']:.3e} s, {result['n_steps']:,} steps, "
           f"{result['runtime']:.1f} s of computer time "
           f"({1e6 * result['runtime'] / result['n_steps']:.0f} μs per step)")
@@ -195,61 +168,27 @@ def run_stage2(r_mp):
     figures = {}
     L, alpha = 4.0, 45.0
 
-    # 1. Trapped proton, followed for one full drift orbit around Earth.
     E_p = 10e6
     t_drift = drift_period_estimate(L, E_p, alpha, PROTON)
-    res, info = run_case("10 MeV proton, trapped", PROTON, E_p, L, alpha,
-                         1.05 * t_drift, r_mp)
+    res, _ = run_case("10 MeV proton, trapped", PROTON, E_p, L, alpha,
+                      1.05 * t_drift, r_mp)
     title = "10 MeV proton, L = 4, pitch angle 45°"
     figures["5_proton_trajectory_3d.png"] = plotting.plot_trajectory_3d(
         res, PROTON, L, r_mp, title + " (one drift orbit)")
-    figures["6_proton_motion_components.png"] = plotting.plot_trajectory_components(
-        res, title + ": gyration, bounce and drift")
-    figures["7_proton_energy.png"] = plotting.plot_energy(
-        res, PROTON, title + ": kinetic energy")
-    figures["8_proton_magnetic_moment.png"] = plotting.plot_magnetic_moment(
-        res, PROTON, info["gyroperiod"], title + ": magnetic moment")
 
-    # 2. Proton inside the loss cone (3° < 5.3°).  It should reach the
-    #    atmosphere near the L = 4 footpoint latitude (60°).  This tests the
-    #    "hit Earth" logic that we will later use to map the aurora.
-    #
-    #    We use 1 MeV here, NOT 10 MeV.  A 10 MeV proton at L = 4 is only
-    #    marginally "adiabatic": its gyroradius (~0.1 R_E) is about 10% of the
-    #    radius of curvature of the field line at the equator (L·R_E/3).  So
-    #    μ is not conserved as it crosses the equator, its pitch angle gets
-    #    scattered, and a 3° proton is knocked OUT of the loss cone and stays
-    #    trapped.  (This is real physics, called field-line curvature
-    #    scattering, not a bug.)  At 1 MeV the ratio is ~3% and μ holds.
     E_lc = 1e6
     t_bounce_lc = bounce_period_estimate(L, speed_from_energy(E_lc, PROTON), 3.0)
-    res, info = run_case("1 MeV proton, inside the loss cone", PROTON,
-                         E_lc, L, 3.0, 0.5 * t_bounce_lc, r_mp)
-    figures["9_proton_loss_cone_3d.png"] = plotting.plot_trajectory_3d(
-        res, PROTON, L, r_mp, "1 MeV proton, L = 4, pitch angle 3° (loss cone)")
+    run_case("1 MeV proton, inside the loss cone", PROTON,
+             E_lc, L, 3.0, 0.5 * t_bounce_lc, r_mp)
 
-    # 3. Electron.  1 keV is a typical auroral electron energy and keeps
-    #    v < 0.1c.  Its Larmor radius is ~150 m, far too small to see on a
-    #    plot in Earth radii, so we plot the motion components (|r| shows the
-    #    gyration) rather than a 3D path.
     E_e = 1e3
     t_bounce_e = bounce_period_estimate(L, speed_from_energy(E_e, ELECTRON), alpha)
-    res, info = run_case("1 keV electron, trapped", ELECTRON, E_e, L, alpha,
-                         ELECTRON_BOUNCE_FRACTION * t_bounce_e, r_mp,
-                         save_every=5)
-    title = "1 keV electron, L = 4, pitch angle 45°"
-    figures["10_electron_motion_components.png"] = plotting.plot_trajectory_components(
-        res, title)
-    figures["11_electron_energy.png"] = plotting.plot_energy(
-        res, ELECTRON, title + ": kinetic energy")
-    figures["12_electron_magnetic_moment.png"] = plotting.plot_magnetic_moment(
-        res, ELECTRON, info["gyroperiod"], title + ": magnetic moment")
+    run_case("1 keV electron, trapped", ELECTRON, E_e, L, alpha,
+             ELECTRON_BOUNCE_FRACTION * t_bounce_e, r_mp, save_every=5)
     return figures
 
 
 def main():
-    # The Windows console defaults to an old encoding that cannot print
-    # symbols like μ₀ or ², so switch the output to UTF-8.
     sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(
@@ -267,18 +206,6 @@ def main():
         check_traced_lines()
         r_mp = check_magnetopause()
         print_L_shell_table(r_mp)
-
-        L_values = [2, 3, 4, 6, 8, 10, 12, 15]
-        figures.update({
-            "1_meridional_field_lines.png":
-                plotting.plot_meridional_field_lines(L_values, r_mp, FIELD_STRENGTH_SCALE),
-            "2_field_strength_map.png":
-                plotting.plot_field_strength_map(r_mp, FIELD_STRENGTH_SCALE),
-            "3_field_lines_3d.png":
-                plotting.plot_3d_field_lines([3, 6, 9, 12], 8, r_mp, FIELD_STRENGTH_SCALE),
-            "4_footpoint_latitude.png":
-                plotting.plot_footpoint_latitude(r_mp),
-        })
     else:
         r_mp = magnetopause_standoff(*QUIET_SOLAR_WIND, FIELD_STRENGTH_SCALE)
 

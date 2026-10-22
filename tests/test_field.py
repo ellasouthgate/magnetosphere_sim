@@ -1,9 +1,3 @@
-"""
-Stage 1 validation checks: the dipole field, L-shells and the magnetopause.
-
-Run from the project folder with:   py -m pytest
-"""
-
 import numpy as np
 import pytest
 
@@ -31,8 +25,6 @@ def test_polar_field_is_twice_equatorial():
 
 
 def test_field_direction():
-    # m = −|m| ẑ: the field points north (+z) at the equator, and down
-    # into Earth (−z) at the north pole.
     B_eq = B_dipole([R_E, 0, 0])
     B_np = B_dipole([0, 0, R_E])
     assert B_eq[2] > 0 and B_np[2] < 0
@@ -46,7 +38,6 @@ def test_field_falls_off_as_one_over_r_cubed():
 
 
 def test_matches_spherical_formula_at_any_latitude():
-    # Standard result: |B| = (μ₀/4π)·|m|/r³ · √(1 + 3 sin²λ)
     for lam_deg in [-75, -30, 0, 10, 45, 80]:
         lam = np.radians(lam_deg)
         r = 2.5 * R_E
@@ -77,7 +68,6 @@ def test_field_strength_scale_multiplies_the_field():
 # ---------------------------------------------------------------------------
 
 def test_footpoint_latitude_known_values():
-    # cos²λ = 1/L
     assert footpoint_latitude(1) == pytest.approx(0.0, abs=1e-12)
     assert footpoint_latitude(2) == pytest.approx(45.0, rel=1e-12)
     assert footpoint_latitude(4) == pytest.approx(60.0, rel=1e-12)
@@ -104,8 +94,6 @@ def test_traced_field_line_follows_r_equals_L_sin_squared_theta(L):
     L_est = r / (R_E * sin_theta_sq)
     assert np.max(np.abs(L_est - L)) / L < 1e-6
 
-    # The line should come down at the mirror-image southern footpoint,
-    # and cross the equator at L·R_E.
     assert end_reason == "surface"
     end_lat = np.degrees(np.arcsin(points[-1, 2] / r[-1]))
     assert end_lat == pytest.approx(-footpoint_latitude(L), abs=1e-4)
@@ -125,7 +113,6 @@ def test_standoff_shrinks_in_a_storm():
     quiet = magnetopause_standoff(5, 400)
     storm = magnetopause_standoff(20, 700)
     assert storm < quiet
-    # r_mp ∝ (ρv²)^(−1/6)
     pressure_ratio = (20 * 700**2) / (5 * 400**2)
     assert storm / quiet == pytest.approx(pressure_ratio ** (-1 / 6), rel=1e-12)
 
@@ -137,7 +124,7 @@ def test_standoff_scales_as_cube_root_of_field_strength():
 
 
 def test_open_and_closed_field_lines():
-    r_mp = magnetopause_standoff(5, 400)      # ≈ 10.2 R_E
+    r_mp = magnetopause_standoff(5, 400)
 
     segments, status = field_line_for_L(4, 0.0, r_mp)
     assert status == "closed" and len(segments) == 1
@@ -145,5 +132,4 @@ def test_open_and_closed_field_lines():
     segments, status = field_line_for_L(12, 0.0, r_mp)
     assert status == "open" and len(segments) == 2
     for seg in segments:
-        # Drawing stops at the boundary (within one tracing step).
         assert np.linalg.norm(seg, axis=1).max() <= r_mp + 0.03 * R_E
