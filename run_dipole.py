@@ -166,6 +166,7 @@ def run_stage2(r_mp):
     print("STAGE 2: single particles in the dipole field (Boris pusher)")
     print("=" * 70)
     figures = {}
+    animations = {}
     L, alpha = 4.0, 45.0
 
     E_p = 10e6
@@ -173,8 +174,10 @@ def run_stage2(r_mp):
     res, _ = run_case("10 MeV proton, trapped", PROTON, E_p, L, alpha,
                       1.05 * t_drift, r_mp)
     title = "10 MeV proton, L = 4, pitch angle 45°"
-    figures["5_proton_trajectory_3d.png"] = plotting.plot_trajectory_3d(
+    traj_fig = plotting.plot_trajectory_3d(
         res, PROTON, L, r_mp, title + " (one drift orbit)")
+    figures["5_proton_trajectory_3d.png"] = traj_fig
+    animations["5_proton_trajectory_3d.gif"] = plotting.animate_rotation(traj_fig)
 
     E_lc = 1e6
     t_bounce_lc = bounce_period_estimate(L, speed_from_energy(E_lc, PROTON), 3.0)
@@ -185,7 +188,7 @@ def run_stage2(r_mp):
     t_bounce_e = bounce_period_estimate(L, speed_from_energy(E_e, ELECTRON), alpha)
     run_case("1 keV electron, trapped", ELECTRON, E_e, L, alpha,
              ELECTRON_BOUNCE_FRACTION * t_bounce_e, r_mp, save_every=5)
-    return figures
+    return figures, animations
 
 
 def main():
@@ -215,7 +218,9 @@ def main():
         r_mp = magnetopause_standoff(*QUIET_SOLAR_WIND, FIELD_STRENGTH_SCALE)
 
     if args.stage in ("2", "all"):
-        figures.update(run_stage2(r_mp))
+        stage2_figures, stage2_animations = run_stage2(r_mp)
+        figures.update(stage2_figures)
+        animations.update(stage2_animations)
 
     for filename, fig in figures.items():
         fig.savefig(FIGURE_DIR / filename, dpi=150)
