@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 '''
 Model of magnetic field using spherical harmonics, expanded to l=1 (equivalent to dipole model)
-Uses B = -∇Ψ(r,theta, phi)
+Uses B = -∇Ψ(r,theta, phi) = -(r^ ∂_r + (1/r)theta^ ∂_theta + (1/rsin(theta))phi^ ∂_phi)Ψ
 
 Ψ(r,theta,phi) is the scalar magnetic potential (units A):
 
