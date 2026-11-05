@@ -6,9 +6,6 @@ from constants import E_CHARGE, M_PROTON, M_ELECTRON, C_LIGHT, R_E
 from field import B_dipole, equatorial_surface_field, footpoint_latitude
 
 
-# ---------------------------------------------------------------------------
-# Species
-# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Species:
@@ -21,9 +18,7 @@ PROTON = Species("proton", M_PROTON, +E_CHARGE)
 ELECTRON = Species("electron", M_ELECTRON, -E_CHARGE)
 
 
-# ---------------------------------------------------------------------------
-# Basic gyro-motion quantities
-# ---------------------------------------------------------------------------
+
 
 def speed_from_energy(energy_eV, species):
     return np.sqrt(2 * energy_eV * E_CHARGE / species.mass)
@@ -41,9 +36,6 @@ def magnetic_moment(v_perp, B_mag, species):
     return species.mass * v_perp**2 / (2 * B_mag)
 
 
-# ---------------------------------------------------------------------------
-# Mirror points and the loss cone
-# ---------------------------------------------------------------------------
 
 def footpoint_field(L, field_strength_scale=1.0):
     lam = np.radians(footpoint_latitude(L))
@@ -61,10 +53,6 @@ def loss_cone_angle(L, field_strength_scale=1.0):
     return np.degrees(np.arcsin(np.sqrt(B_eq / B_foot)))
 
 
-# ---------------------------------------------------------------------------
-# Textbook estimates of the bounce and drift periods (for checking runs)
-# ---------------------------------------------------------------------------
-
 def bounce_period_estimate(L, speed, pitch_angle_deg):
     return 4 * L * R_E / speed * (1.30 - 0.56 * np.sin(np.radians(pitch_angle_deg)))
 
@@ -78,9 +66,6 @@ def drift_period_estimate(L, energy_eV, pitch_angle_deg, species,
             / (0.35 + 0.15 * sin_a))
 
 
-# ---------------------------------------------------------------------------
-# Initial conditions
-# ---------------------------------------------------------------------------
 
 def initial_conditions(species, energy_eV, L, pitch_angle_deg,
                        longitude_deg=0.0, field_strength_scale=1.0):

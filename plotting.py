@@ -24,10 +24,6 @@ def _set_cube_axes(ax, lim, title):
     ax.set_title(title)
 
 
-# ===========================================================================
-# Stage 1: the field
-# ===========================================================================
-
 def plot_field_direction_3d(r_mp, L_values=(2, 4, 6, 8), n_longitudes=6,
                             arrow_fractions=(0.2, 0.5, 0.8),
                             field_strength_scale=1.0):
@@ -68,9 +64,7 @@ def animate_rotation(fig, n_frames=120, elev=20, interval_ms=50):
     return FuncAnimation(fig, update, frames=n_frames, interval=interval_ms)
 
 
-# ===========================================================================
-# Stage 2: particle trajectories
-# ===========================================================================
+
 
 def plot_trajectory_3d(result, species, L_context, r_mp, title,
                        field_strength_scale=1.0, n_context_lines=6):

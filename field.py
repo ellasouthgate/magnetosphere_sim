@@ -4,9 +4,6 @@ from scipy.integrate import solve_ivp
 from constants import MU_0, M_PROTON, R_E, M_DIPOLE, M_DIPOLE_VEC
 
 
-# ---------------------------------------------------------------------------
-# The dipole field
-# ---------------------------------------------------------------------------
 
 def B_dipole(r, field_strength_scale=1.0):
     r = np.asarray(r, dtype=float)
@@ -23,9 +20,6 @@ def equatorial_surface_field(field_strength_scale=1.0):
     return field_strength_scale * (MU_0 / (4 * np.pi)) * M_DIPOLE / R_E**3
 
 
-# ---------------------------------------------------------------------------
-# L-shells (analytic)
-# ---------------------------------------------------------------------------
 
 def footpoint_latitude(L):
     L = np.asarray(L, dtype=float)
@@ -45,9 +39,7 @@ def L_shell_line(L, phi=0.0, n_points=400):
     ])
 
 
-# ---------------------------------------------------------------------------
-# Numerical field-line tracing
-# ---------------------------------------------------------------------------
+
 
 def trace_field_line(start, r_outer=None, field_strength_scale=1.0,
                      max_step=0.02 * R_E, max_length=100 * R_E):
@@ -87,9 +79,6 @@ def trace_field_line(start, r_outer=None, field_strength_scale=1.0,
     return points, end_reason
 
 
-# ---------------------------------------------------------------------------
-# Magnetopause (simple boundary)
-# ---------------------------------------------------------------------------
 
 def magnetopause_standoff(n_cm3, v_kms, field_strength_scale=1.0):
     n = n_cm3 * 1e6
