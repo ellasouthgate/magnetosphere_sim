@@ -2,18 +2,18 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 from constants import MU_0, M_PROTON, R_E, M_DIPOLE, M_DIPOLE_VEC
+from config import SUN_DIRECTION
+from sources import dipole_field
 
 
 
 def B_dipole(r, field_strength_scale=1.0):
-    r = np.asarray(r, dtype=float)
+    """Earth's untilted dipole (m = −|m| ẑ at the origin): the old model.
 
-    r_mag = np.linalg.norm(r, axis=-1, keepdims=True)
-    r_hat = r / r_mag
-    m_dot_rhat = np.sum(r_hat * M_DIPOLE_VEC, axis=-1, keepdims=True)
-
-    B = (MU_0 / (4 * np.pi)) * (3 * m_dot_rhat * r_hat - M_DIPOLE_VEC) / r_mag**3
-    return field_strength_scale * B
+    Now a special case of sources.dipole_field; the numbers are bit-for-bit
+    the same as before.
+    """
+    return field_strength_scale * dipole_field(r, M_DIPOLE_VEC)
 
 
 def equatorial_surface_field(field_strength_scale=1.0):
@@ -42,13 +42,27 @@ def L_shell_line(L, phi=0.0, n_points=400):
 
 
 def trace_field_line(start, r_outer=None, field_strength_scale=1.0,
-                     max_step=0.02 * R_E, max_length=100 * R_E):
-    start = np.asarray(start, dtype=float)
-    r_hat0 = start / np.linalg.norm(start)
-    sign = 1.0 if np.dot(B_dipole(start, field_strength_scale), r_hat0) > 0 else -1.0
+                     max_step=0.02 * R_E, max_length=100 * R_E,
+                     field_func=None, direction=None):
+    """Follow a field line from `start` until it hits Earth or leaves r_outer.
 
-    def direction(s, r):
-        B = B_dipole(r, field_strength_scale)
+    field_func : function r -> B.  None (default) = the old dipole B_dipole.
+    direction  : +1 to go along B, −1 against it.  None (default) = whichever
+                 way points away from Earth at the start (the old behaviour).
+    """
+    if field_func is None:
+        def field_func(r):
+            return B_dipole(r, field_strength_scale)
+
+    start = np.asarray(start, dtype=float)
+    if direction is None:
+        r_hat0 = start / np.linalg.norm(start)
+        sign = 1.0 if np.dot(field_func(start), r_hat0) > 0 else -1.0
+    else:
+        sign = float(np.sign(direction))
+
+    def direction_of_B(s, r):
+        B = field_func(r)
         return sign * B / np.linalg.norm(B)
 
     def hit_surface(s, r):
@@ -65,7 +79,7 @@ def trace_field_line(start, r_outer=None, field_strength_scale=1.0,
         hit_outer.direction = +1
         events.append(hit_outer)
 
-    sol = solve_ivp(direction, (0.0, max_length), start, events=events,
+    sol = solve_ivp(direction_of_B, (0.0, max_length), start, events=events,
                     max_step=max_step, rtol=1e-9, atol=1e-3)
 
     points = sol.y.T
@@ -78,6 +92,17 @@ def trace_field_line(start, r_outer=None, field_strength_scale=1.0,
         end_reason = "max_length"
     return points, end_reason
 
+
+
+def local_time_hours(longitude_deg):
+    """Local time from longitude φ (measured from +x towards +y, eastward).
+
+    Noon (12 h) is the longitude facing the Sun (SUN_DIRECTION; the Sun is on
+    −x, so noon is φ = 180°).  Local time increases eastward at 15° per hour:
+        LT = 12 + (φ − φ_noon)/15   (mod 24)
+    """
+    lon_noon = np.degrees(np.arctan2(SUN_DIRECTION[1], SUN_DIRECTION[0]))
+    return (12 + (np.asarray(longitude_deg) - lon_noon) / 15) % 24
 
 
 def magnetopause_standoff(n_cm3, v_kms, field_strength_scale=1.0):

@@ -6,10 +6,6 @@ from field import (B_dipole, equatorial_surface_field, footpoint_latitude,
                    trace_field_line, magnetopause_standoff, field_line_for_L)
 
 
-# ---------------------------------------------------------------------------
-# The dipole field
-# ---------------------------------------------------------------------------
-
 def test_equatorial_surface_field_is_about_3_1e_minus_5_tesla():
     B_eq = np.linalg.norm(B_dipole([R_E, 0, 0]))
     assert B_eq == pytest.approx(3.1e-5, rel=0.02)
@@ -63,10 +59,6 @@ def test_field_strength_scale_multiplies_the_field():
     assert np.all(B_dipole(p, 0.0) == 0)
 
 
-# ---------------------------------------------------------------------------
-# L-shells
-# ---------------------------------------------------------------------------
-
 def test_footpoint_latitude_known_values():
     assert footpoint_latitude(1) == pytest.approx(0.0, abs=1e-12)
     assert footpoint_latitude(2) == pytest.approx(45.0, rel=1e-12)
@@ -99,10 +91,6 @@ def test_traced_field_line_follows_r_equals_L_sin_squared_theta(L):
     assert end_lat == pytest.approx(-footpoint_latitude(L), abs=1e-4)
     assert r.max() == pytest.approx(L * R_E, rel=1e-4)
 
-
-# ---------------------------------------------------------------------------
-# Magnetopause
-# ---------------------------------------------------------------------------
 
 def test_quiet_standoff_is_about_10_earth_radii():
     r_mp = magnetopause_standoff(n_cm3=5, v_kms=400)

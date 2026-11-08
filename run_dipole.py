@@ -119,7 +119,7 @@ def print_run_checks(result, info, species):
     if result["hit"] is not None:
         h = result["hit"]
         print(f"    HIT EARTH at t = {h['time']:.4f} s:  latitude {h['latitude_deg']:.2f}°, "
-              f"longitude {h['longitude_deg']:.2f}° from noon (MLT {h['mlt_hours']:.2f} h)")
+              f"longitude {h['longitude_deg']:.2f}° from +x/midnight (MLT {h['mlt_hours']:.2f} h)")
         print(f"    expected footpoint latitude for L = {info['L']:g}: "
               f"±{footpoint_latitude(info['L']):.2f}°")
         return

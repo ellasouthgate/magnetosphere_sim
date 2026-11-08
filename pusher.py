@@ -3,7 +3,7 @@ import time as _time
 import numpy as np
 
 from constants import R_E
-from field import B_dipole
+from field import B_dipole, local_time_hours
 from particles import gyroperiod
 
 
@@ -114,6 +114,6 @@ def _impact_point(r_outside, r_inside, t_outside, dt):
 
     lat = np.degrees(np.arcsin(position[2] / R_E))
     lon = np.degrees(np.arctan2(position[1], position[0]))
-    mlt = (12 + lon / 15) % 24
+    mlt = local_time_hours(lon)   # Sun on −x: noon is lon = 180°
     return {"position": position, "latitude_deg": lat, "longitude_deg": lon,
             "mlt_hours": mlt, "time": t_outside + f * dt}

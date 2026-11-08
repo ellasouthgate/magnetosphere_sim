@@ -11,10 +11,6 @@ from pusher import (boris_rotate, run_particle, measured_bounce_period,
                     measured_drift_period)
 
 
-# ---------------------------------------------------------------------------
-# Launch values (the numbers teammates check by hand)
-# ---------------------------------------------------------------------------
-
 def test_launch_values_for_10_MeV_proton_at_L4():
     r0, v0, info = initial_conditions(PROTON, 10e6, 4, 45)
 
@@ -47,10 +43,6 @@ def test_relativistic_warning():
     assert check_speed(speed_from_energy(1e3, ELECTRON)) is True
     assert check_speed(speed_from_energy(10e6, PROTON)) is False
 
-
-# ---------------------------------------------------------------------------
-# The Boris step on its own, in a uniform field
-# ---------------------------------------------------------------------------
 
 def test_boris_rotation_keeps_speed_exactly():
     rng = np.random.default_rng(1)
@@ -86,10 +78,6 @@ def test_uniform_field_circle_has_larmor_radius_and_gyroperiod():
     assert radii.mean() == pytest.approx(r_L, rel=1e-3)
     assert np.linalg.norm(path[-1] - path[0]) < 0.01 * r_L
 
-
-# ---------------------------------------------------------------------------
-# Motion in the dipole field
-# ---------------------------------------------------------------------------
 
 def _run(species, energy_eV, L, pitch_deg, t_max, **kwargs):
     r0, v0, info = initial_conditions(species, energy_eV, L, pitch_deg)
