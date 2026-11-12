@@ -14,33 +14,32 @@ k = 1e-7
 q = 1.602176634e-19
 m_e = 9.1093837015e-31
 m_p = 1.67262192369e-27
-R_E = 6.371e6
-M_dipole = 8.0e22
+earth_radius = 6.371e6
+dipole_moment = 8.0e22
 tilt = np.radians(23.4)
 
-dt = 1.0e-9              
-STEPS_PER_FRAME = 50     
-SAMPLE_EVERY = 5        
-TRAIL_SAMPLES = 2500     
+dt = 1.0e-9
+steps_per_frame = 50
+sample_every = 5
+trail_samples = 2500
 
-M_dipole_vec = np.array([-M_dipole * np.sin(tilt), 0.0, -M_dipole * np.cos(tilt)])
+dipole_moment_vec = np.array([-dipole_moment * np.sin(tilt), 0.0, -dipole_moment * np.cos(tilt)])
 
 start_altitude = 0.0
 start_x = start_altitude * np.sin(tilt)
-start_z = R_E + start_altitude * np.cos(tilt)
+start_z = earth_radius + start_altitude * np.cos(tilt)
 initial_position = np.array([start_x, 0.0, start_z])
 
 
 def dipole_field(position):
     radius = np.linalg.norm(position)
-    dot_product = np.dot(M_dipole_vec, position)
-    return k * (3.0 * position * dot_product - M_dipole_vec * radius**2) / radius**5
+    dot_product = np.dot(dipole_moment_vec, position)
+    return k * (3.0 * position * dot_product - dipole_moment_vec * radius**2) / radius**5
 
 
 def calculate_velocity_matrix(active_mass, is_proton=False):
     velocity_matrix = {}
 
-    
     magnetic = dipole_field(initial_position)
     field_direction = magnetic / np.linalg.norm(magnetic)
     points_outward = np.dot(field_direction, initial_position) > 0.0
@@ -67,7 +66,7 @@ def calculate_velocity_matrix(active_mass, is_proton=False):
 v_p = calculate_velocity_matrix(m_e)
 
 
-def get_B_field(position, storm_mode=False):
+def get_magnetic_field(position, storm_mode=False):
     position = np.asarray(position, dtype=float)
     if np.linalg.norm(position) == 0.0:
         return np.zeros(3)
@@ -88,7 +87,7 @@ def calculate_larmor_radius(velocity, magnetic, mass=m_e):
 
 
 def calculate_physics_step(position, velocity, storm_mode=False, is_proton=False):
-    magnetic = get_B_field(position, storm_mode)
+    magnetic = get_magnetic_field(position, storm_mode)
     field_magnitude = np.linalg.norm(magnetic)
     mass = m_p if is_proton else m_e
     charge = q if is_proton else -q
@@ -104,8 +103,7 @@ def calculate_physics_step(position, velocity, storm_mode=False, is_proton=False
 
 
 def euler_step(position, velocity, storm_mode=False, is_proton=False):
-    
-    magnetic = get_B_field(position, storm_mode)
+    magnetic = get_magnetic_field(position, storm_mode)
     field_direction = magnetic / np.linalg.norm(magnetic)
     mass = m_p if is_proton else m_e
     charge = q if is_proton else -q
@@ -124,7 +122,7 @@ def euler_step(position, velocity, storm_mode=False, is_proton=False):
 
 
 def get_guiding_center(position, velocity, storm_mode=False, is_proton=False):
-    magnetic = get_B_field(position, storm_mode)
+    magnetic = get_magnetic_field(position, storm_mode)
     field_magnitude = np.linalg.norm(magnetic)
     if field_magnitude == 0.0:
         return position.copy()
@@ -136,26 +134,26 @@ def get_guiding_center(position, velocity, storm_mode=False, is_proton=False):
 
 
 # --------------------------------------------------------------------------
-# Visuals
+# Visual settings
 # --------------------------------------------------------------------------
-FONT = "Segoe UI"
-BG = "#FFFFFF"
-BORDER = "#D5D9DE"
-TEXT = "#1F2933"
-MUTED = "#6B7280"
-ACCENT = "#1F3A5F"
-BTN_BG = "#F3F4F6"
-BTN_HOVER = "#E5E7EB"
+font_name = "Segoe UI"
+background = "#FFFFFF"
+border_colour = "#D5D9DE"
+text_colour = "#1F2933"
+muted_colour = "#6B7280"
+accent_colour = "#1F3A5F"
+button_colour = "#F3F4F6"
+button_hover_colour = "#E5E7EB"
 
-COL_PATH = "#1F5FA8"
-COL_GC = "#8A94A0"
-COL_ARROW = "#C0392B"
-COL_MARKER = "#E67E22"
+path_colour = "#1F5FA8"
+guiding_centre_colour = "#8A94A0"
+arrow_colour = "#C0392B"
+marker_colour = "#E67E22"
 
-PANEL_WIDTH = 310
-VIEW_ZOOM = 1.15         
-FIXED_SPAN = 8.0         
-AXIS_TICKS = [-8, -4, 0, 4, 8]
+panel_width = 310
+view_zoom = 1.15
+axis_span = 8.0
+axis_ticks = [-8, -4, 0, 4, 8]
 
 
 class AuroralSimulationApp:
@@ -164,7 +162,7 @@ class AuroralSimulationApp:
         root.title("Mapping the Magnetosphere")
         root.geometry("1320x820")
         root.minsize(1000, 700)
-        root.configure(bg=BG)
+        root.configure(bg=background)
 
         self.selected_energy = 5.0
         self.selected_pitch = 75.0
@@ -176,31 +174,25 @@ class AuroralSimulationApp:
         self._reset_path()
         self._animate_loop()
 
-    # ------------------------------------------------------------------
-    # State
-    # ------------------------------------------------------------------
     def _reset_state_arrays(self):
         storm = self.current_storm_mode
         self.current_pos = initial_position.copy()
         self.current_vel = v_p[self.selected_energy][self.selected_pitch].copy()
 
         first_center = get_guiding_center(self.current_pos, self.current_vel, storm)
-        self.pos_history = deque([self.current_pos.copy()], maxlen=TRAIL_SAMPLES)
-        self.gc_history = deque([first_center], maxlen=TRAIL_SAMPLES)
+        self.pos_history = deque([self.current_pos.copy()], maxlen=trail_samples)
+        self.gc_history = deque([first_center], maxlen=trail_samples)
         self.sim_time = 0.0
         self.frame_count = 0
 
-        b0 = get_B_field(self.current_pos, storm)
+        b0 = get_magnetic_field(self.current_pos, storm)
         self.r0 = calculate_larmor_radius(self.current_vel, b0)
-        self.span = FIXED_SPAN   
+        self.span = axis_span
 
         self.r_t = [0.0]
         self.r_val = [self.r0]
         self.r_stride = 1
 
-    # ------------------------------------------------------------------
-    # Interface 
-    # ------------------------------------------------------------------
     def _build_interface(self):
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
@@ -208,45 +200,45 @@ class AuroralSimulationApp:
         self._build_control_panel()
 
     def _build_3d_view(self):
-        self.plot_frame = tk.Frame(self.root, bg=BG)
+        self.plot_frame = tk.Frame(self.root, bg=background)
         self.plot_frame.grid(row=0, column=0, sticky="nsew")
 
-        self.fig = Figure(facecolor=BG)
+        self.fig = Figure(facecolor=background)
         self.ax = self.fig.add_axes([0.0, 0.0, 1.0, 0.93], projection="3d")
         self._style_3d_axes()
 
-        self.field_line_plot, = self.ax.plot([], [], [], color=COL_GC, linewidth=1.4)
-        self.trajectory_line, = self.ax.plot([], [], [], color=COL_PATH, linewidth=1.8)
+        self.field_line_plot, = self.ax.plot([], [], [], color=guiding_centre_colour, linewidth=1.4)
+        self.trajectory_line, = self.ax.plot([], [], [], color=path_colour, linewidth=1.8)
         self.particle_marker, = self.ax.plot(
             [0.0], [0.0], [0.0], marker="o", markersize=9, linestyle="none",
-            markerfacecolor=COL_MARKER, markeredgecolor="white",
+            markerfacecolor=marker_colour, markeredgecolor="white",
             markeredgewidth=1.2)
 
         self.fig.text(
             0.025, 0.965, "Mapping the Magnetosphere: A Simulation of the Aurora",
-            fontsize=14, fontweight="bold", color=TEXT, family=FONT, va="center")
+            fontsize=14, fontweight="bold", color=text_colour, family=font_name, va="center")
         self.fig.text(
             0.025, 0.935, "Axes in metres, relative to the electron's guiding centre.",
-            fontsize=9, color=MUTED, family=FONT, va="center")
+            fontsize=9, color=muted_colour, family=font_name, va="center")
 
         handles = [
-            Line2D([0], [0], color=COL_PATH, lw=2, label="Electron path"),
-            Line2D([0], [0], color=COL_GC, lw=1.5, label="Guiding centre"),
-            Line2D([0], [0], color=COL_ARROW, lw=2.2,
+            Line2D([0], [0], color=path_colour, lw=2, label="Electron path"),
+            Line2D([0], [0], color=guiding_centre_colour, lw=1.5, label="Guiding centre"),
+            Line2D([0], [0], color=arrow_colour, lw=2.2,
                    label="Magnetic field direction"),
             Line2D([0], [0], marker="o", color="w", markersize=9,
-                   markerfacecolor=COL_MARKER, label="Electron (current)")]
+                   markerfacecolor=marker_colour, label="Electron (current)")]
         self.fig.legend(
             handles=handles, loc="upper right", bbox_to_anchor=(0.985, 0.985),
-            frameon=False, fontsize=9, labelcolor=TEXT)
+            frameon=False, fontsize=9, labelcolor=text_colour)
 
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.plot_frame)
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
     def _build_control_panel(self):
-        tk.Frame(self.root, bg=BORDER, width=1).grid(row=0, column=1, sticky="ns")
+        tk.Frame(self.root, bg=border_colour, width=1).grid(row=0, column=1, sticky="ns")
 
-        self.panel = tk.Frame(self.root, bg=BG, width=PANEL_WIDTH)
+        self.panel = tk.Frame(self.root, bg=background, width=panel_width)
         self.panel.grid(row=0, column=2, sticky="ns", padx=16, pady=14)
         self.panel.pack_propagate(False)
 
@@ -263,7 +255,7 @@ class AuroralSimulationApp:
             [(30.0, "30°"), (45.0, "45°"), (75.0, "75°")], self._set_pitch)
 
         self._section("SIMULATION")
-        row = tk.Frame(self.panel, bg=BG)
+        row = tk.Frame(self.panel, bg=background)
         row.pack(fill="x")
         row.columnconfigure((0, 1, 2), weight=1, uniform="sim")
         sim_buttons = (("Reset", self._reset_path), ("Play", self._play_sim),
@@ -278,10 +270,10 @@ class AuroralSimulationApp:
 
     def _style_3d_axes(self):
         ax = self.ax
-        ax.set_facecolor(BG)
+        ax.set_facecolor(background)
         ax.view_init(elev=16, azim=-52)
         try:
-            ax.set_box_aspect((1, 1, 1), zoom=VIEW_ZOOM)
+            ax.set_box_aspect((1, 1, 1), zoom=view_zoom)
         except TypeError:
             ax.set_box_aspect((1, 1, 1))
 
@@ -290,29 +282,29 @@ class AuroralSimulationApp:
                 axis.set_pane_color((1.0, 1.0, 1.0, 0.0))
             except Exception:
                 pass
-            axis.set_major_locator(FixedLocator(AXIS_TICKS))
+            axis.set_major_locator(FixedLocator(axis_ticks))
             axis.set_major_formatter(FormatStrFormatter("%g"))
-            axis.label.set_color(MUTED)
-        ax.tick_params(colors=MUTED, labelsize=8)
+            axis.label.set_color(muted_colour)
+        ax.tick_params(colors=muted_colour, labelsize=8)
         ax.set_xlabel("x (m)", fontsize=9, labelpad=4)
         ax.set_ylabel("y (m)", fontsize=9, labelpad=4)
         ax.set_zlabel("z (m)", fontsize=9, labelpad=2)
 
     def _section(self, title, first=False):
-        label = tk.Label(self.panel, text=title, font=(FONT, 8, "bold"),
-                         fg=MUTED, bg=BG, anchor="w")
+        label = tk.Label(self.panel, text=title, font=(font_name, 8, "bold"),
+                         fg=muted_colour, bg=background, anchor="w")
         label.pack(fill="x", pady=(0 if first else 12, 4))
 
     def _make_button(self, parent, text, command):
         return tk.Button(
-            parent, text=text, command=command, font=(FONT, 9),
-            relief="flat", bd=0, bg=BTN_BG, fg=TEXT,
-            activebackground=BTN_HOVER, activeforeground=TEXT,
-            highlightthickness=1, highlightbackground=BORDER,
+            parent, text=text, command=command, font=(font_name, 9),
+            relief="flat", bd=0, bg=button_colour, fg=text_colour,
+            activebackground=button_hover_colour, activeforeground=text_colour,
+            highlightthickness=1, highlightbackground=border_colour,
             cursor="hand2", pady=6)
 
     def _segmented(self, options, command):
-        frame = tk.Frame(self.panel, bg=BG)
+        frame = tk.Frame(self.panel, bg=background)
         frame.pack(fill="x")
         frame.columnconfigure(tuple(range(len(options))), weight=1, uniform="seg")
         buttons = {}
@@ -325,8 +317,8 @@ class AuroralSimulationApp:
 
     def _build_telemetry_card(self):
         self._section("TELEMETRY")
-        card = tk.Frame(self.panel, bg=BG, highlightthickness=1,
-                        highlightbackground=BORDER, highlightcolor=BORDER)
+        card = tk.Frame(self.panel, bg=background, highlightthickness=1,
+                        highlightbackground=border_colour, highlightcolor=border_colour)
         card.pack(fill="x")
         card.columnconfigure(1, weight=1)
 
@@ -337,54 +329,51 @@ class AuroralSimulationApp:
         for i, (key, label) in enumerate(rows):
             pad_top = 10 if i == 0 else 3
             pad_bottom = 10 if i == len(rows) - 1 else 3
-            name = tk.Label(card, text=label, font=(FONT, 9), fg=MUTED, bg=BG,
+            name = tk.Label(card, text=label, font=(font_name, 9), fg=muted_colour, bg=background,
                             anchor="w")
             name.grid(row=i, column=0, sticky="w", padx=(12, 6),
                       pady=(pad_top, pad_bottom))
-            value = tk.Label(card, text="--", font=(FONT, 9, "bold"), fg=TEXT,
-                             bg=BG, anchor="e")
+            value = tk.Label(card, text="--", font=(font_name, 9, "bold"), fg=text_colour,
+                             bg=background, anchor="e")
             value.grid(row=i, column=1, sticky="e", padx=(6, 12),
                        pady=(pad_top, pad_bottom))
             self.tele[key] = value
 
     def _build_radius_plot(self):
         self._section("LARMOR RADIUS OVER TIME")
-        card = tk.Frame(self.panel, bg=BG, highlightthickness=1,
-                        highlightbackground=BORDER, highlightcolor=BORDER)
+        card = tk.Frame(self.panel, bg=background, highlightthickness=1,
+                        highlightbackground=border_colour, highlightcolor=border_colour)
         card.pack(fill="both", expand=True)
 
-        self.r_fig = Figure(figsize=(3.0, 2.0), dpi=100, facecolor=BG)
+        self.r_fig = Figure(figsize=(3.0, 2.0), dpi=100, facecolor=background)
         self.r_ax = self.r_fig.add_subplot(111)
         self.r_fig.subplots_adjust(left=0.27, right=0.95, top=0.95, bottom=0.24)
         ax = self.r_ax
-        ax.set_facecolor(BG)
+        ax.set_facecolor(background)
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
         for side in ("left", "bottom"):
-            ax.spines[side].set_color(BORDER)
-        ax.tick_params(colors=MUTED, labelsize=7, length=3)
+            ax.spines[side].set_color(border_colour)
+        ax.tick_params(colors=muted_colour, labelsize=7, length=3)
         ax.grid(True, color="#ECEEF1", linewidth=0.6)
-        ax.set_xlabel("time (µs)", fontsize=8, color=MUTED, labelpad=2)
-        ax.set_ylabel("Larmor radius (m)", fontsize=8, color=MUTED, labelpad=2)
+        ax.set_xlabel("time (µs)", fontsize=8, color=muted_colour, labelpad=2)
+        ax.set_ylabel("Larmor radius (m)", fontsize=8, color=muted_colour, labelpad=2)
         ax.yaxis.set_major_formatter(FormatStrFormatter("%.4f"))
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
         ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
-        self.r_line, = ax.plot([], [], color=ACCENT, linewidth=1.5)
+        self.r_line, = ax.plot([], [], color=accent_colour, linewidth=1.5)
 
         self.r_canvas = FigureCanvasTkAgg(self.r_fig, master=card)
         self.r_canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    # ------------------------------------------------------------------
-    # Telemetry 
-    # ------------------------------------------------------------------
     @staticmethod
     def _style_selected(button, selected):
         if selected:
-            button.config(bg=ACCENT, fg="white", activebackground=ACCENT,
-                          activeforeground="white", highlightbackground=ACCENT)
+            button.config(bg=accent_colour, fg="white", activebackground=accent_colour,
+                          activeforeground="white", highlightbackground=accent_colour)
         else:
-            button.config(bg=BTN_BG, fg=TEXT, activebackground=BTN_HOVER,
-                          activeforeground=TEXT, highlightbackground=BORDER)
+            button.config(bg=button_colour, fg=text_colour, activebackground=button_hover_colour,
+                          activeforeground=text_colour, highlightbackground=border_colour)
 
     def _update_button_highlights(self):
         for value, button in self.field_buttons.items():
@@ -401,7 +390,7 @@ class AuroralSimulationApp:
         self.tele["pitch"].config(text=f"{self.selected_pitch:g}°")
 
     def _update_telemetry(self, record=True):
-        magnetic = get_B_field(self.current_pos, self.current_storm_mode)
+        magnetic = get_magnetic_field(self.current_pos, self.current_storm_mode)
         field_magnitude = np.linalg.norm(magnetic)
         radius = calculate_larmor_radius(self.current_vel, magnetic)
         self.tele["b"].config(text=f"{field_magnitude * 1e6:.4f} µT")
@@ -426,9 +415,6 @@ class AuroralSimulationApp:
         self.r_ax.set_ylim(low - pad, high + pad)
         self.r_canvas.draw_idle()
 
-    # ------------------------------------------------------------------
-    # 3D view
-    # ------------------------------------------------------------------
     def _apply_view(self):
         span = self.span
         self.ax.set_xlim(-span, span)
@@ -444,14 +430,14 @@ class AuroralSimulationApp:
                 pass
             self.field_arrow = None
 
-        magnetic = get_B_field(self.gc_history[-1], self.current_storm_mode)
+        magnetic = get_magnetic_field(self.gc_history[-1], self.current_storm_mode)
         field_magnitude = np.linalg.norm(magnetic)
         if field_magnitude == 0.0:
             return
         dx, dy, dz = magnetic / field_magnitude
         self.field_arrow = self.ax.quiver(
             0.0, 0.0, 0.0, dx, dy, dz, length=0.55 * self.span, normalize=True,
-            color=COL_ARROW, linewidth=2.2, arrow_length_ratio=0.2)
+            color=arrow_colour, linewidth=2.2, arrow_length_ratio=0.2)
 
     def _update_3d_view(self):
         history = np.asarray(self.pos_history)
@@ -460,7 +446,7 @@ class AuroralSimulationApp:
         relative_history = history - latest_center
         relative_centers = guiding_centers - latest_center
 
-        # Only draw what is inside the box, so nothing spills past the axes.
+
         inside_h = np.all(np.abs(relative_history) <= self.span, axis=1)
         inside_c = np.all(np.abs(relative_centers) <= self.span, axis=1)
         path = relative_history[inside_h]
@@ -478,21 +464,18 @@ class AuroralSimulationApp:
         if self.frame_count % 25 == 0:
             self._update_field_arrow()
 
-    # ------------------------------------------------------------------
-    # Animation loop
-    # ------------------------------------------------------------------
     def _animate_loop(self):
         if self.anim_running:
             storm = self.current_storm_mode
-            for i in range(STEPS_PER_FRAME):
+            for i in range(steps_per_frame):
                 self.current_pos, self.current_vel = euler_step(
                     self.current_pos, self.current_vel, storm)
-                if i % SAMPLE_EVERY == 0:
+                if i % sample_every == 0:
                     self.pos_history.append(self.current_pos.copy())
                     self.gc_history.append(get_guiding_center(
                         self.current_pos, self.current_vel, storm))
 
-            self.sim_time += STEPS_PER_FRAME * dt
+            self.sim_time += steps_per_frame * dt
             self.frame_count += 1
 
             self._update_3d_view()
@@ -502,9 +485,6 @@ class AuroralSimulationApp:
             self.canvas.draw_idle()
         self.root.after(20, self._animate_loop)
 
-    # ------------------------------------------------------------------
-    # Controls
-    # ------------------------------------------------------------------
     def _reset_path(self):
         self._reset_state_arrays()
         self._update_button_highlights()
