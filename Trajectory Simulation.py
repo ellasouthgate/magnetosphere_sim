@@ -4,7 +4,7 @@ from collections import deque
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
+from matplotlib.lines import Line2D 
 from matplotlib.ticker import FixedLocator, FormatStrFormatter, MaxNLocator
 
 # --------------------------------------------------------------------------
