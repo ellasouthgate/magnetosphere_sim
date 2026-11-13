@@ -125,7 +125,7 @@ def spherical_mag(t,p):
     m_sum3=0
 
     '''Input N'''
-    N=4
+    N=2
 
 
     for i in range(1,N+1,1):
