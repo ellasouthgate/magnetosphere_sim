@@ -1,4 +1,4 @@
-# Developer Documentation for the Trajectory Simulation.py
+# Developer Documentation for the Trajectory Simulation
 ## Aims of the Simulation 
 Initially I had hoped to create the simulation such that we could see a stream of solar wind particles, and show where they create the aurora at the intersection of the Earth and Sun's dipoles. With both the time and coding experience this was not feasible. Doing so would have also caused the problem with scale as the Larmor radii are in a range of 1-5m and would not be visible next to the Earth's radius . 
 
