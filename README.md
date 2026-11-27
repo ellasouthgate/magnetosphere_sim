@@ -55,6 +55,76 @@ B(r) = k * ( 3 r (m . r) - m |r|^2 ) / |r|^5
 get_magnetic_field then calls on this value for the varying conditions. 
 
 ## Mechanisms 
+### Initial Velocity (calculate_velocity_matrix)
+For each energy and pitch angle the code forms the initial velocity and stores it in a nested dictionary v_p(energy)(pitch)
+
+1.  The field direction at the starting point is found. The sign is chosen so that the electron's parallel velocity points in the direction of travel (down towards the atmosphere).
+
+2.  A vector perpendicular to the field is made with a cross product against the x-axis.
+  
+3.  The speed comes from the non-relativistic kinetic energy:
+
+speed = sqrt(2 E q / m), with E converted from keV to joules.
+4.  The velocity is split by the pitch angle alpha, measured from the field:
+
+v = speed * cos(alpha) * b_hat  +  speed * sin(alpha) * perpendicular
+
+### Integrating the motion (euler_step)
+The force acting on the electron takes into account the Earths magnetic field only. 
+
+a = (charge / mass) * ( v x B )          charge = -q 
+
+Each step splits the velocity into parrallel and perpendicular components to B then updates the perpendicular velocity v_perp_new = v_perp + a * dt. 
+
+The new perpendicular velocity is then scaled back to the original length and the position is moved acording to the new velocity which is a combination of the parallel and new perpendicular velocity. 
+
+The perpendicular velocity is rescaled as initial versions of the code showed the Larmor radius increasing as time went on at an increasing rate. As the magnetic force does no work the speed remains constant. By doing this some angular error remains which is not taken into account in this version of the simulation. 
+
+
+### Guiding center
+get_guiding_center is the center of the circle the electron is orbiting at a particular point. 
+
+R_gc = r + ( m / (charge * |B|) ) * ( v x b_hat )
+
+The guiding center trail is drawn as the electron continues its path. 
+
+### Larmor radius
+r_L = m * v_perp / ( q * |B| )          unit: kg (m/s) / (C T) = m
+
+### Current and induced field
+While I ran into some issues incorporating the current induced by the particle into the code I still chose to calculate the current and induced field to show within the data window alonside the plot of the decreasing larmor radius as it adds context. 
+
+The following provides the acceleration and equivalant current and the field that would be produced. 
+I = q^2 |B| / (2 pi m)                  unit: A  (charge times gyrofrequency)
+B_induced = (4 pi k) * I / (2 r_L)      unit: T  (center of a circular loop)
+
+### View update_3d_view
+update_3d_view subtracts the lastest guiding center position from the stored points so that the electron remains visible on the screen within the plot. 
+
+## Program Structure 
+__init__ Sets defaults (5 keV, 75 degrees, quiet field), builds the interface, resets and starts the loop
+
+_build_interface configures the window grid and calls the two builders below
+
+_build_3d_view creates the 3d axes, line objects, marker, title text and legend
+
+_build_control_panel creates the buttons, reset/play/pause the telemetry box and the plot of the larmor radius. _segmented, _make_button, _section contribute to this. 
+
+_style_selected, _update_button_highlights highlight the active input choices 
+
+_set_storm, _set_energy, _set_pitch store the new choice and call _reset_path
+
+_play_sim, _pause_sim switches the anim_running on and off allowing you to pause the simulation 
+
+_animate_loop is the main loop which uses _update_telemetry, _update_radius_plot to update the telemetry and the larmor plot, and _apply_view, _update_field_arrow to set the aix and redraw the field arrow. 
+
+
+## Limitations and Issues 
+1.  No mirror force. The parallel velocity is held constant within each step and the perpendicular speed is held constant by the rescale. In a real converging field the magnetic moment is conserved, so v_perp would grow and v_parallel would shrink, eventually reflecting the electron. Here the Larmor radius falls only because |B| rises.
+2.  By using non-relativistic speeds creates slight errors.
+3.  When rescaling perpendicular velocity the phase error is not addresed.
+
+
 
 
 
