@@ -65,6 +65,7 @@ For each energy and pitch angle the code forms the initial velocity and stores i
 3.  The speed comes from the non-relativistic kinetic energy:
 
 speed = sqrt(2 E q / m), with E converted from keV to joules.
+
 4.  The velocity is split by the pitch angle alpha, measured from the field:
 
 v = speed * cos(alpha) * b_hat  +  speed * sin(alpha) * perpendicular
@@ -95,7 +96,9 @@ r_L = m * v_perp / ( q * |B| )          unit: kg (m/s) / (C T) = m
 While I ran into some issues incorporating the current induced by the particle into the code I still chose to calculate the current and induced field to show within the data window alonside the plot of the decreasing larmor radius as it adds context. 
 
 The following provides the acceleration and equivalant current and the field that would be produced. 
+
 I = q^2 |B| / (2 pi m)                  unit: A  (charge times gyrofrequency)
+
 B_induced = (4 pi k) * I / (2 r_L)      unit: T  (center of a circular loop)
 
 ### View update_3d_view
@@ -121,7 +124,9 @@ _animate_loop is the main loop which uses _update_telemetry, _update_radius_plot
 
 ## Limitations and Issues 
 1.  No mirror force. The parallel velocity is held constant within each step and the perpendicular speed is held constant by the rescale. In a real converging field the magnetic moment is conserved, so v_perp would grow and v_parallel would shrink, eventually reflecting the electron. Here the Larmor radius falls only because |B| rises.
+  
 2.  By using non-relativistic speeds creates slight errors.
+  
 3.  When rescaling perpendicular velocity the phase error is not addresed.
 
 
