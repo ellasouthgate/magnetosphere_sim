@@ -31,15 +31,30 @@ trail_samples = maximum number of stored data on the trail length
 
 ### Display Settings 
 panel_width = the width of the control panel 310 pixels
+
 axis_ticks = (-8,-4,0,4,8)
+
 path_colour, arrow_colour, marker_colour can be changed using different hex ocde values to change the display colors. 
 
 ### Changing Variables
 energy_kev: (options 1,3,5 keV)
+
 pitch_deg: (options 30,45,75 degrees)
+
 storm_mode changes the field strength from the initial quiet condition (average field strength approx 58 micro Tesla. This alters the B_z by -0.6x10^-6
 
 ## Field Model
+The initial Field model starts with the z-axis pointing through the pole. This is then change so that the dipole moment vector is tilted using 'tilt' in the x-z plane
+
+m = ( -M sin(tilt), 0, -M cos(tilt) )      M = 8.0e22 A m^2
+
+dipole_field uses the following dipole formula 
+
+B(r) = k * ( 3 r (m . r) - m |r|^2 ) / |r|^5
+
+get_magnetic_field then calls on this value for the varying conditions. 
+
+## Mechanisms 
 
 
 
