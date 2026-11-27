@@ -7,8 +7,10 @@ Due to these two aspects the simulation focuses on the Larmor radius of a singul
 This simulation neglects the effects of the Sun's dipole, Collisions of particles within the Solar wind, and Relativistic effects. 
 
 ## Constants 
-k = mu0/4pi, this is the magnetic field constant that turns the dipole moment into the field (1x10^-7 Tm/A)//
-q = Elementary charge (1.602176634 x10^-19 C)//
+k = mu0/4pi, this is the magnetic field constant that turns the dipole moment into the field (1x10^-7 Tm/A)
+
+q = Elementary charge (1.602176634 x10^-19 C)
+
 m_e = electron mass (9.1093837015 x 10^ -31 kg)
 earth_radius = mean radius of the Earth (6.371x10^6 m)
 dipole_moment = magnitude of the Earths magnetic dipole moment (8 x10^22 Am^2)
