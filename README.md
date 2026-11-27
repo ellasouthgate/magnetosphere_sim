@@ -107,19 +107,19 @@ update_3d_view subtracts the lastest guiding center position from the stored poi
 ## Program Structure 
 __init__ Sets defaults (5 keV, 75 degrees, quiet field), builds the interface, resets and starts the loop
 
-_build_interface configures the window grid and calls the two builders below
+__build_interface__ configures the window grid and calls the two builders below
 
-_build_3d_view creates the 3d axes, line objects, marker, title text and legend
+__build_3d_view__ creates the 3d axes, line objects, marker, title text and legend
 
-_build_control_panel creates the buttons, reset/play/pause the telemetry box and the plot of the larmor radius. _segmented, _make_button, _section contribute to this. 
+__build_control_panel__ creates the buttons, reset/play/pause the telemetry box and the plot of the larmor radius. _segmented, _make_button, _section contribute to this. 
 
-_style_selected, _update_button_highlights highlight the active input choices 
+__style_selected__, __update_button_highlights__ highlight the active input choices 
 
-_set_storm, _set_energy, _set_pitch store the new choice and call _reset_path
+__set_storm__ __set_energy__ __set_pitch__ store the new choice and call __reset_path__
 
-_play_sim, _pause_sim switches the anim_running on and off allowing you to pause the simulation 
+__play_sim__ __pause_sim__ switches the __anim_running__ on and off allowing you to pause the simulation 
 
-_animate_loop is the main loop which uses _update_telemetry, _update_radius_plot to update the telemetry and the larmor plot, and _apply_view, _update_field_arrow to set the aix and redraw the field arrow. 
+__animate_loop__ is the main loop which uses __update_telemetry__, __update_radius_plot__ to update the telemetry and the larmor plot, and __apply_view__, __update_field_arrow__ to set the aix and redraw the field arrow. 
 
 
 ## Limitations and Issues 
