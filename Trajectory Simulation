@@ -151,7 +151,7 @@ arrow_colour = "#C0392B"
 marker_colour = "#E67E22"
 
 panel_width = 310
-view_zoom = 1.15
+view_zoom = 1
 axis_span = 8.0
 axis_ticks = [-8, -4, 0, 4, 8]
 
